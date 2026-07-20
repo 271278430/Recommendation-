@@ -47,7 +47,7 @@ pyproject.toml
 
 - [API参考文档](docs/API参考文档.md) — **调用方手册**：请求参数表 + 响应示例 + curl 命令
 - [接口现状文档](docs/接口现状文档.md) — **程序员文档**：分层架构 + 统一约定 + 业务逻辑
-- [ARCHITECTURE](docs/ARCHITECTURE.md) — 项目架构地图
+- [架构文档](docs/架构文档.md) — 项目架构地图
 - [接口数据规范](docs/接口数据规范.md) — 统一数据格式约定
 - [数据库表设计文档](docs/数据库表设计文档.md) — PG 三张表设计
 - [学情建模V1](docs/学情建模与学情状态更新机制建模V1.md) — 掌握度算法（Beta-Binomial + 7步更新）
