@@ -44,6 +44,7 @@ pyproject.toml
 ## 文档索引（docs/）
 
 - [接口现状文档](docs/接口现状文档.md) — **程序员首查**：接口全貌 + 统一约定 + 错误码
+- [API 参考文档](docs/API参考文档.md) — **调用方手册**：每个接口的请求参数表 + 响应示例 + curl 命令
 - [ARCHITECTURE](docs/ARCHITECTURE.md) — 项目架构地图
 - [推荐服务接口文档](docs/推荐服务接口文档.md) — 5 个核心接口 API 详解
 - [接口数据规范](docs/接口数据规范.md) — 统一数据格式约定

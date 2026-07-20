@@ -1,0 +1,15 @@
+{
+  "_说明": "共现图谱构建参数。改这里后重跑 build_cooc.py 即可重建。所有产物输出到 data/kg_graph/。",
+  "cooc_unit": "parent_union",
+  "_cooc_unit_说明": "parent_union=父题+子题标签并集为一道题; child_only=仅同一子题内计共现",
+  "weight_metric": "npmi",
+  "_weight_metric_说明": "邻接矩阵的主边权: npmI(归一化互信息,消除热度偏差) | jaccard | count",
+  "k_min": 3,
+  "_k_min_说明": "最小支持度: 两点至少在 k_min 道题里共现才保留边",
+  "npmi_min": 0.25,
+  "_npmi_min_说明": "最小 NPMI 强度,低于此值的边丢弃(仅当 weight_metric=npmi 时生效)",
+  "top_k": 10,
+  "_top_k_说明": "每个知识点最多保留 top_k 条最强边,防止枢纽点长出星形辐射",
+  "save_jaccard": true,
+  "_save_jaccard_说明": "是否同时计算并存一份 Jaccard 矩阵备查"
+}
