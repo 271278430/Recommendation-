@@ -27,27 +27,28 @@ pyproject.toml
 
 分层依赖方向：`api → svc → core → mastery_store → data/`，严禁反向。
 
-## 接口（/api/v1 前缀，统一返回 {code,msg,data,trace_id}）
+## 接口（REST 风格，/api/v1 前缀，统一返回 {code,msg,data,trace_id}）
 
 | 方法 | 路径 | 用途 |
 |------|------|------|
-| POST | `/recommend/recall` | 粗召回：ZPD 范围候选题 |
-| POST | `/mastery/forget` | 遗忘衰减后的掌握度 |
-| POST | `/practice/kp-sequence` | 某知识点做题序列 |
-| POST | `/practice/submit-answer` | 答题更新掌握度 + 写记录 |
-| POST | `/student/learning-status` | 学情（掌握度+历史+图谱） |
-| GET | `/students` `/knowledge-points` `/graph/edges` | 元数据列表 |
+| GET | `/students` | 学生列表 |
+| GET | `/students/{id}/mastery` | 遗忘衰减后的掌握度 |
+| GET | `/students/{id}/learning-status` | 学情总览（掌握度+历史+图谱） |
+| GET | `/students/{id}/practice-events` | 做题序列 |
+| POST | `/students/{id}/practice-events` | 提交答案、更新掌握度 |
+| POST | `/students/{id}/recommendations` | 粗召回：ZPD 候选题 |
+| GET | `/knowledge-points` | 知识点列表 |
+| GET | `/knowledge-graph/edges` | 知识图谱边 |
 | GET | `/health` | 健康检查 |
 
-**接口全貌、请求/响应字段、错误码、业务逻辑详见 [docs/接口现状文档.md](docs/接口现状文档.md)（活文档，随改动维护）。**
+**完整 API 文档见 [docs/API参考文档.md](docs/API参考文档.md)（调用方手册）；架构与逻辑见 [docs/接口现状文档.md](docs/接口现状文档.md)（程序员文档）。**
 
 ## 文档索引（docs/）
 
-- [接口现状文档](docs/接口现状文档.md) — **程序员首查**：接口全貌 + 统一约定 + 错误码
-- [API 参考文档](docs/API参考文档.md) — **调用方手册**：每个接口的请求参数表 + 响应示例 + curl 命令
+- [API参考文档](docs/API参考文档.md) — **调用方手册**：请求参数表 + 响应示例 + curl 命令
+- [接口现状文档](docs/接口现状文档.md) — **程序员文档**：分层架构 + 统一约定 + 业务逻辑
 - [ARCHITECTURE](docs/ARCHITECTURE.md) — 项目架构地图
-- [推荐服务接口文档](docs/推荐服务接口文档.md) — 5 个核心接口 API 详解
 - [接口数据规范](docs/接口数据规范.md) — 统一数据格式约定
 - [数据库表设计文档](docs/数据库表设计文档.md) — PG 三张表设计
-- [学情建模与学情状态更新机制建模V1](docs/学情建模与学情状态更新机制建模V1.md) — 掌握度算法（Beta-Binomial + 7步更新）
+- [学情建模V1](docs/学情建模与学情状态更新机制建模V1.md) — 掌握度算法（Beta-Binomial + 7步更新）
 - [mastery_store/README.md](mastery_store/README.md) — 数据层说明
