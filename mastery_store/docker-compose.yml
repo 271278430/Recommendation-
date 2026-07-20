@@ -1,0 +1,29 @@
+# 学情状态库 —— 单容器 PostgreSQL
+# 启动: docker compose up -d
+# 停止: docker compose down            (数据保留在 volume)
+# 彻底清空: docker compose down -v
+services:
+  mastery-db:
+    image: postgres:16-alpine
+    container_name: mastery-db
+    
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-mastery}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?请在 .env 设置强密码}
+      POSTGRES_DB: ${POSTGRES_DB:-mastery}
+    ports:
+      # 只绑本机回环,不暴露到网络;需外部访问再改
+      - "127.0.0.1:${POSTGRES_PORT:-5433}:5432"
+    volumes:
+      - mastery-data:/var/lib/postgresql/data
+      # 容器首次启动时自动执行建表脚本
+      - ./init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-mastery} -d ${POSTGRES_DB:-mastery}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  mastery-data:
