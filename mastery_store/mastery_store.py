@@ -147,7 +147,10 @@ def get_mastery(student_id):
 
 
 def get_confidence(student_id):
-    """读置信度 c = (N-2P)/(N-2P+K)，0 基 np.float32[612]；不存在返回全 0。"""
+    """读置信度 c = (N-2P)/(N-2P+K_SAT)，0 基 np.float32[612]；不存在返回全 0。
+
+    注意：分母饱和常数是 K_SAT=8（仅读时派生展示用），不是 IRT 区分度 K=5。
+    """
     alpha, beta, _, _ = get_state(student_id)
     eff = alpha + beta - 2 * P
     return eff / (eff + K_SAT)

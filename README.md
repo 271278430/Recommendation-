@@ -6,8 +6,8 @@
 
 ```bash
 cd /data/shanghui/Recommend_question
-python3 -m service.main          # 起 http://0.0.0.0:8800
-./run_tests.sh                   # 一键全量测试（80 用例）
+python3 -m service.main          # 起 http://127.0.0.1:8800
+./run_tests.sh                   # 一键全量测试（99 用例）
 ```
 
 依赖 PostgreSQL，见 `mastery_store/docker-compose.yml`（端口 5433，首次启动自动建表）。

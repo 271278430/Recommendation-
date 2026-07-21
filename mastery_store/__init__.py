@@ -7,7 +7,7 @@
 from .mastery_store import (  # noqa: F401
     # 读
     get_state, get_mastery, get_confidence, get_converged_mastery,
-    weakest_kps,
+    weakness_score, weakest_kps,
     # 写
     update, process_answer, init_student,
     # 算法
@@ -30,7 +30,7 @@ from .practice import (  # noqa: F401
 
 __all__ = [
     "get_state", "get_mastery", "get_confidence", "get_converged_mastery",
-    "weakest_kps", "update", "process_answer", "init_student",
+    "weakness_score", "weakest_kps", "update", "process_answer", "init_student",
     "forget_decay", "step_update", "sigmoid", "clamp",
     "P", "N_MAX", "KAPPA", "K_SAT",
     "TAU_MIN", "TAU_MAX", "TAU_PEAK",
