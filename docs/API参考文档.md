@@ -1,6 +1,6 @@
 # 学情推荐服务 API 参考文档
 
-> 版本：v2 · 最后更新：2026-07-20 · 基础路径：`http://{host}/api/v1`
+> 版本：v2.1 · 最后更新：2026-07-21 · 基础路径：`http://{host}/api/v1`
 
 ---
 
@@ -61,6 +61,7 @@
 |------|------|------|
 | GET | `/students` | 学生列表 |
 | GET | `/students/{student_id}/mastery` | 掌握度 |
+| POST | `/students/{student_id}/mastery` | 初始化/重置掌握度 |
 | GET | `/students/{student_id}/learning-status` | 学情总览 |
 | GET | `/students/{student_id}/practice-events` | 做题记录 |
 | POST | `/students/{student_id}/practice-events` | 提交答案 |
@@ -149,7 +150,68 @@ GET /api/v1/students/{student_id}/mastery?kp_ids=J030004000200080003&kp_ids=J030
 
 ---
 
-### 3.3 GET /students/{student_id}/learning-status
+### 3.3 POST /students/{student_id}/mastery
+
+> 初始化或重置某学生的掌握度：把历史做题数据（如摸底/分班考试）注入为先验，或冷启动一个新学生。
+> 已有数据的学生会被**覆盖**（UPSERT），因此同时支持"初始化"和"重置"两种用途。
+
+**请求**
+
+```
+POST /api/v1/students/9060601/mastery
+Content-Type: application/json
+
+{
+  "correct_counts": { "J030004000200080003": 5 },
+  "wrong_counts":   { "J030004000200080003": 2 },
+  "last_ts":        { "J030004000200080003": "2026-07-15T10:00:00Z" }
+}
+```
+
+| 参数 | 类型 | 必填 | 默认 | 说明 |
+|------|------|------|------|------|
+| `student_id` | int | ✅ | — | 路径参数 |
+| `correct_counts` | object | 否 | — | 各知识点正确次数 `{kp_id: count}`，count ≥ 0 |
+| `wrong_counts` | object | 否 | — | 各知识点错误次数 `{kp_id: count}`，count ≥ 0 |
+| `last_ts` | object | 否 | — | 各知识点最后答题时间 `{kp_id: ISO8601}` |
+
+> 三个字段全空 = **冷启动**（所有知识点 m = 0.5）。注入公式：`m = (correct + P) / (correct + P + wrong + P)`，P = 2。
+> `last_ts` 影响后续遗忘衰减的起算点；只注入先验不给时间戳时，该知识点 `has_data` 仍为 false。
+
+**成功响应**（201 Created）——格式与 GET /mastery 一致，返回初始化后的掌握度：
+
+```json
+{
+  "code": 0,
+  "data": {
+    "student_id": 9060601,
+    "now": "2026-07-21T10:00:00",
+    "items": [
+      {
+        "kp_id": "J030004000200080003",
+        "kp_name": "勾股定理",
+        "m": 0.6364,
+        "m_peak": 0.6364,
+        "N": 11.00,
+        "last_ts": "2026-07-15T10:00:00",
+        "days_since": 6.0,
+        "has_data": true
+      }
+    ]
+  }
+}
+```
+
+**错误**
+
+```
+404  { "code": 40403, "msg": "部分 kp_id 不存在", "data": { "invalid_kp_ids": ["BAD_ID"] } }
+422  { "detail": [...] }  —— correct_counts/wrong_counts 为负，或 last_ts 非 ISO8601
+```
+
+---
+
+### 3.4 GET /students/{student_id}/learning-status
 
 > 查询某个学生的学情总览——包含掌握度概要、做题历史、可选的知识图谱边。
 > 这是一个**聚合视图**，前端一次性拿到学情页需要的所有数据。
@@ -237,7 +299,7 @@ GET /api/v1/students/9060601/learning-status?scope_type=kp_ids&scope_value=J0300
 
 ---
 
-### 3.4 GET /students/{student_id}/practice-events
+### 3.5 GET /students/{student_id}/practice-events
 
 > 查询某个学生在指定知识点上的做题记录，按时间倒序排列。
 > 可用于错题本（`wrong_only=true`）或做题历史展示。
@@ -296,7 +358,7 @@ GET /api/v1/students/9060601/practice-events?kp_id=J030004000200080003&wrong_onl
 
 ---
 
-### 3.5 POST /students/{student_id}/practice-events
+### 3.6 POST /students/{student_id}/practice-events
 
 > 提交一次答题结果。
 >
@@ -394,7 +456,7 @@ Content-Type: application/json
 
 ---
 
-### 3.6 POST /students/{student_id}/recommendations
+### 3.7 POST /students/{student_id}/recommendations
 
 > 根据学生当前掌握度，在指定知识点范围内召回 ZPD（最近发展区）候选题目。
 >
@@ -471,7 +533,7 @@ Content-Type: application/json
 
 ---
 
-### 3.7 GET /knowledge-points
+### 3.8 GET /knowledge-points
 
 > 全量知识点列表，供前端筛选/搜索。
 
@@ -492,7 +554,7 @@ GET /knowledge-points
 
 ---
 
-### 3.8 GET /knowledge-graph/edges
+### 3.9 GET /knowledge-graph/edges
 
 > 全量知识图谱关系边，供前端渲染知识图谱。
 
@@ -530,6 +592,11 @@ curl $BASE/students
 
 # 查掌握度
 curl "$BASE/students/9060601/mastery?kp_ids=J030004000200080003"
+
+# 初始化/重置掌握度（注入摸底考试先验）
+curl -X POST $BASE/students/9060601/mastery \
+  -H "Content-Type: application/json" \
+  -d '{"correct_counts":{"J030004000200080003":5},"wrong_counts":{"J030004000200080003":2}}'
 
 # 查学情
 curl "$BASE/students/9060601/learning-status?scope_type=kp_ids&scope_value=J030004000200080003"

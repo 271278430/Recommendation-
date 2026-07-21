@@ -33,6 +33,7 @@ pyproject.toml
 |------|------|------|
 | GET | `/students` | 学生列表 |
 | GET | `/students/{id}/mastery` | 遗忘衰减后的掌握度 |
+| POST | `/students/{id}/mastery` | 初始化/重置掌握度（注入先验） |
 | GET | `/students/{id}/learning-status` | 学情总览（掌握度+历史+图谱） |
 | GET | `/students/{id}/practice-events` | 做题序列 |
 | POST | `/students/{id}/practice-events` | 提交答案、更新掌握度 |
