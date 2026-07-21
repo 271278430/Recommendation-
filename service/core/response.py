@@ -10,16 +10,18 @@ from pydantic import BaseModel
 
 class ErrorCode:
     OK = 0
-    BAD_REQUEST = 40001
-    UNAUTHORIZED = 40101
-    FORBIDDEN = 40301
-    SCOPE_NOT_FOUND = 40401
-    STUDENT_NOT_FOUND = 40402
-    KP_NOT_FOUND = 40403
-    QUESTION_NOT_FOUND = 40404
-    QUESTION_NO_KP = 40002
-    RATE_LIMITED = 42901
-    INTERNAL = 50001
+    BAD_REQUEST = 40001            # 参数错误（业务 400 / 校验 422）
+    QUESTION_NO_KP = 40002         # 题目无知识点标签
+    UNAUTHORIZED = 40101           # 未授权（预留，已接入 HTTPException 映射）
+    FORBIDDEN = 40301              # 禁止访问（预留，已接入 HTTPException 映射）
+    NOT_FOUND = 40400              # 路由/资源不存在（HTTPException 404）
+    SCOPE_NOT_FOUND = 40401        # 学情范围无效
+    STUDENT_NOT_FOUND = 40402      # 学生不存在（预留）
+    KP_NOT_FOUND = 40403           # 知识点不存在
+    QUESTION_NOT_FOUND = 40404     # 题目不存在
+    METHOD_NOT_ALLOWED = 40501     # 方法不允许（HTTPException 405）
+    RATE_LIMITED = 42901           # 限流（预留，已接入 HTTPException 映射）
+    INTERNAL = 50001               # 内部错误
 
 
 class BizError(Exception):

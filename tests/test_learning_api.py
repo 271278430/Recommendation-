@@ -52,6 +52,7 @@ def test_learning_status_mastery_and_history(client, student_with_data):
     assert it["practice_count"] == 2
     # history
     assert d["history"]["summary"]["total_answered"] == 2
+    assert d["history"]["summary"]["wrong_count"] == 1
     assert d["history"]["summary"]["accuracy"] == 0.5
     assert len(d["history"]["events"]) == 2
 

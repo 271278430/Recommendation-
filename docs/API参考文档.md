@@ -1,6 +1,6 @@
 # 学情推荐服务 API 参考文档
 
-> 版本：v2.1 · 最后更新：2026-07-21 · 基础路径：`http://{host}/api/v1`
+> 版本：v2.2 · 最后更新：2026-07-21 · 基础路径：`http://{host}/api/v1`
 
 ---
 
@@ -31,17 +31,23 @@
 | `data` | any | 具体业务数据，见各接口 |
 | `trace_id` | string | 12 位请求追踪 ID，响应头 `X-Trace-Id` 同步返回 |
 
+> 所有响应——成功、业务错误、422 参数校验失败、**以及 404/405 等框架级错误**——都遵循此结构；错误时 `data` 通常携带定位信息（如 `invalid_kp_ids`、`errors`）。
+
 ### 1.3 错误码
 
 | 码 | HTTP | 含义 |
 |----|------|------|
 | 0 | 200 | 成功 |
-| 40001 | 400 | 参数错误 |
+| 40001 | 400 / 422 | 参数错误（见下方注） |
 | 40002 | 400 | 题目无知识点标签 |
+| 40400 | 404 | 接口/路由不存在 |
 | 40401 | 404 | 范围无效 |
 | 40403 | 404 | 知识点 ID 不存在 |
 | 40404 | 404 | 题目不存在 |
+| 40501 | 405 | 请求方法不允许 |
 | 50001 | 500 | 内部错误 |
+
+> 注：`40001` 出现在两种场景——业务参数错误（**HTTP 400**，如 `ts` 越界、`aspects` 非法）与请求体校验失败（**HTTP 422**，Pydantic 拒绝非法字段，字段级报错在 `data.errors`）。`40400`/`40501` 为框架级错误（路由不匹配 / 方法不允许），同样走统一 ApiResponse。
 
 ### 1.4 公共概念
 
@@ -88,7 +94,9 @@ GET /students
 ```json
 {
   "code": 0,
-  "data": [9060601, 9060602, ...]
+  "msg": "ok",
+  "data": [9060601, 9060602],
+  "trace_id": "a1b2c3d4e5f6"
 }
 ```
 
@@ -115,6 +123,7 @@ GET /api/v1/students/{student_id}/mastery?kp_ids=J030004000200080003&kp_ids=J030
 ```json
 {
   "code": 0,
+  "msg": "ok",
   "data": {
     "student_id": 9060601,
     "now": "2026-07-20T12:00:00",
@@ -130,7 +139,8 @@ GET /api/v1/students/{student_id}/mastery?kp_ids=J030004000200080003&kp_ids=J030
         "has_data": true
       }
     ]
-  }
+  },
+  "trace_id": "a1b2c3d4e5f6"
 }
 ```
 
@@ -145,7 +155,7 @@ GET /api/v1/students/{student_id}/mastery?kp_ids=J030004000200080003&kp_ids=J030
 **错误**
 
 ```
-404  { "code": 40403, "msg": "部分 kp_id 不存在", "data": { "invalid_kp_ids": ["BAD_ID"] } }
+404  { "code": 40403, "msg": "部分 kp_id 不存在", "data": { "invalid_kp_ids": ["BAD_ID"] }, "trace_id": "a1b2c3d4e5f6" }
 ```
 
 ---
@@ -183,6 +193,7 @@ Content-Type: application/json
 ```json
 {
   "code": 0,
+  "msg": "ok",
   "data": {
     "student_id": 9060601,
     "now": "2026-07-21T10:00:00",
@@ -198,15 +209,16 @@ Content-Type: application/json
         "has_data": true
       }
     ]
-  }
+  },
+  "trace_id": "a1b2c3d4e5f6"
 }
 ```
 
 **错误**
 
 ```
-404  { "code": 40403, "msg": "部分 kp_id 不存在", "data": { "invalid_kp_ids": ["BAD_ID"] } }
-422  { "detail": [...] }  —— correct_counts/wrong_counts 为负，或 last_ts 非 ISO8601
+404  { "code": 40403, "msg": "部分 kp_id 不存在", "data": { "invalid_kp_ids": ["BAD_ID"] }, "trace_id": "a1b2c3d4e5f6" }
+422  { "code": 40001, "msg": "请求参数校验失败", "data": { "errors": [{ "type": "value_error", "loc": ["body", "correct_counts", "J03"], "msg": "count 必须 >= 0" }] }, "trace_id": "a1b2c3d4e5f6" }  —— correct_counts/wrong_counts 为负，或 last_ts 非 ISO8601
 ```
 
 ---
@@ -240,6 +252,7 @@ GET /api/v1/students/9060601/learning-status?scope_type=kp_ids&scope_value=J0300
 ```json
 {
   "code": 0,
+  "msg": "ok",
   "data": {
     "student_id": 9060601,
     "now": "2026-07-20T12:00:00",
@@ -268,7 +281,7 @@ GET /api/v1/students/9060601/learning-status?scope_type=kp_ids&scope_value=J0300
       ]
     },
     "history": {
-      "summary": { "total_answered": 5, "accuracy": 0.80, "last_active_ts": "2026-07-17T10:30:00" },
+      "summary": { "total_answered": 5, "wrong_count": 1, "accuracy": 0.80, "last_active_ts": "2026-07-17T10:30:00" },
       "events": [
         {
           "question_id": "exam_20251016_3",
@@ -286,15 +299,16 @@ GET /api/v1/students/9060601/learning-status?scope_type=kp_ids&scope_value=J0300
         { "from": "J03000300010003", "to": "J030004000200080003", "type": "prereq", "subtype": "solid" }
       ]
     }
-  }
+  },
+  "trace_id": "a1b2c3d4e5f6"
 }
 ```
 
 **错误**
 
 ```
-404  { "code": 40401, "msg": "范围无效", "data": { "invalid_scope": ["不存在的模块"] } }
-400  { "code": 40001, "msg": "aspects 含非法值 ..." }
+404  { "code": 40401, "msg": "范围无效", "data": { "invalid_scope": ["不存在的模块"] }, "trace_id": "a1b2c3d4e5f6" }
+400  { "code": 40001, "msg": "aspects 含非法值 ...", "trace_id": "a1b2c3d4e5f6" }
 ```
 
 ---
@@ -322,6 +336,7 @@ GET /api/v1/students/9060601/practice-events?kp_id=J030004000200080003&wrong_onl
 ```json
 {
   "code": 0,
+  "msg": "ok",
   "data": {
     "student_id": 9060601,
     "kp_id": "J030004000200080003",
@@ -346,14 +361,15 @@ GET /api/v1/students/9060601/practice-events?kp_id=J030004000200080003&wrong_onl
         "kp_ids": ["J030004000200080003"]
       }
     ]
-  }
+  },
+  "trace_id": "a1b2c3d4e5f6"
 }
 ```
 
 **错误**
 
 ```
-404  { "code": 40403, "msg": "kp_id 不存在", "data": { "invalid_kp_ids": ["FAKE"] } }
+404  { "code": 40403, "msg": "kp_id 不存在", "data": { "invalid_kp_ids": ["FAKE"] }, "trace_id": "a1b2c3d4e5f6" }
 ```
 
 ---
@@ -398,6 +414,7 @@ Content-Type: application/json
 ```json
 {
   "code": 0,
+  "msg": "ok",
   "data": {
     "student_id": 9060601,
     "question_id": "exam_20251016_3",
@@ -419,7 +436,8 @@ Content-Type: application/json
         "level_after": "巩固"
       }
     ]
-  }
+  },
+  "trace_id": "a1b2c3d4e5f6"
 }
 ```
 
@@ -435,23 +453,25 @@ Content-Type: application/json
 ```json
 {
   "code": 0,
+  "msg": "ok",
   "data": {
     "student_id": 9060601,
     "question_id": "exam_20251016_3",
     "idempotent_replay": true,
     "message": "该 client_request_id 已处理过，未重复更新掌握度"
-  }
+  },
+  "trace_id": "a1b2c3d4e5f6"
 }
 ```
 
 **错误**
 
 ```
-404  { "code": 40404, "msg": "题目不存在" }
-400  { "code": 40002, "msg": "题目没有知识点标签，无法更新掌握度" }
-400  { "code": 40001, "msg": "题目的知识点无法解析" }
-400  { "code": 40001, "msg": "ts 超出允许范围（now-30天 ~ now+1分钟）" }
-422  { "detail": [...] }  —— source 非法值
+404  { "code": 40404, "msg": "题目不存在", "trace_id": "a1b2c3d4e5f6" }
+400  { "code": 40002, "msg": "题目没有知识点标签，无法更新掌握度", "trace_id": "a1b2c3d4e5f6" }
+400  { "code": 40001, "msg": "题目的知识点无法解析", "trace_id": "a1b2c3d4e5f6" }
+400  { "code": 40001, "msg": "ts 超出允许范围（now-30天 ~ now+1分钟）", "trace_id": "a1b2c3d4e5f6" }
+422  { "code": 40001, "msg": "请求参数校验失败", "data": { "errors": [{ "type": "literal_error", "loc": ["body", "source"], "msg": "..." }] }, "trace_id": "a1b2c3d4e5f6" }  —— source 非法值 / score 越界 / 字段缺失
 ```
 
 ---
@@ -483,6 +503,7 @@ Content-Type: application/json
 ```json
 {
   "code": 0,
+  "msg": "ok",
   "data": {
     "student_id": 9060601,
     "groups": [
@@ -512,7 +533,8 @@ Content-Type: application/json
         "reason": "题库中该知识点无 p∈[0.30,0.80] 的题"
       }
     ]
-  }
+  },
+  "trace_id": "a1b2c3d4e5f6"
 }
 ```
 
@@ -527,8 +549,8 @@ Content-Type: application/json
 **错误**
 
 ```
-404  { "code": 40403, "msg": "部分 kp_id 不存在", "data": { "invalid_kp_ids": ["BAD"] } }
-422   —— kp_ids 为空列表
+404  { "code": 40403, "msg": "部分 kp_id 不存在", "data": { "invalid_kp_ids": ["BAD"] }, "trace_id": "a1b2c3d4e5f6" }
+422  { "code": 40001, "msg": "请求参数校验失败", "data": { "errors": [{ "type": "too_short", "loc": ["body", "kp_ids"], "msg": "..." }] }, "trace_id": "a1b2c3d4e5f6" }  —— kp_ids 为空列表或缺字段
 ```
 
 ---
@@ -546,9 +568,11 @@ GET /knowledge-points
 ```json
 {
   "code": 0,
+  "msg": "ok",
   "data": [
     { "kp_id": "J0300010001000100010006", "kp_name": "正数和负数", "module": "一、有理数" }
-  ]
+  ],
+  "trace_id": "a1b2c3d4e5f6"
 }
 ```
 
@@ -567,10 +591,12 @@ GET /knowledge-graph/edges
 ```json
 {
   "code": 0,
+  "msg": "ok",
   "data": [
     { "from": "J03000300010003", "to": "J030004000200080003", "type": "prereq", "subtype": "solid" },
     { "from": "J03000300040005", "to": "J030004000200080003", "type": "cooc", "weight": 0.4521 }
-  ]
+  ],
+  "trace_id": "a1b2c3d4e5f6"
 }
 ```
 

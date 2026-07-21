@@ -141,6 +141,7 @@ def get_history_summary(student_id: int, kp_ids: list[str], days: int = 30) -> d
         acc = round((total - wrong) / total, 4) if total else None
         return {
             "total_answered": total,
+            "wrong_count": wrong,
             "accuracy": acc,
             "last_active_ts": last_ts.isoformat() if last_ts else None,
         }
