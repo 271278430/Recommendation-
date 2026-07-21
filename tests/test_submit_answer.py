@@ -40,28 +40,34 @@ def cleanup():
 
 
 def test_correct_answer_raises_mastery(client, real_question):
-    """答对 → 掌握度上升（delta > 0）。"""
+    """答对 → 掌握度上升（delta > 0）。
+    cleanup 已删 student_mastery 行 → 该学生冷启动，m_before 必然是先验 0.5。"""
     r = client.post(f"/api/v1/students/{TEMP_SID}/practice-events", json={
         "question_id": real_question, "score": 1.0, "source": "homework",
     })
     assert r.status_code == 201
     d = r.json()["data"]
     assert d["is_wrong"] is False
+    assert len(d["updated_kps"]) > 0
     for kp in d["updated_kps"]:
+        assert kp["m_before"] == 0.5      # 冷启动先验（钉住 before 读数，防读错）
         assert kp["delta"] > 0
         assert kp["m_after"] > kp["m_before"]
 
 
 def test_wrong_answer_lowers_mastery(client, real_question):
-    """答错 → 掌握度下降（delta < 0）。"""
+    """答错 → 掌握度下降（delta < 0）。同样冷启动，m_before=0.5。"""
     r = client.post(f"/api/v1/students/{TEMP_SID}/practice-events", json={
         "question_id": real_question, "score": 0.0, "source": "homework",
     })
     assert r.status_code == 201
     d = r.json()["data"]
     assert d["is_wrong"] is True
+    assert len(d["updated_kps"]) > 0
     for kp in d["updated_kps"]:
+        assert kp["m_before"] == 0.5
         assert kp["delta"] < 0
+        assert kp["m_after"] < kp["m_before"]
 
 
 def test_question_not_found(client):

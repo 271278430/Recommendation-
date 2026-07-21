@@ -23,6 +23,7 @@ def _body(r):
 def test_students_wrapped(client, require_pg):
     data = _body(client.get("/api/v1/students"))
     assert isinstance(data, list)
+    assert len(data) > 0   # 防止接口静默返回空列表（真实库有 690 学生）
 
 
 def test_knowledge_points_wrapped(client):
@@ -35,6 +36,7 @@ def test_knowledge_points_wrapped(client):
 def test_graph_edges_wrapped(client):
     data = _body(client.get("/api/v1/knowledge-graph/edges"))
     assert isinstance(data, list)
+    assert len(data) > 0   # 防止接口静默返回空列表（真实库有 457+ 边）
 
 
 def test_trace_id_in_header(client):
