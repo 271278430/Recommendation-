@@ -11,7 +11,8 @@ import numpy as np
 from fastapi import APIRouter, Query, Request
 from pydantic import BaseModel, Field, model_validator
 
-import mastery_store as ms
+from ..core.kp_registry import N_KP
+from ..svc.mastery import init_student
 from ..core.deps import get_kp_registry
 from ..core.response import ApiResponse, BizError, ErrorCode
 from ..svc import forget
@@ -109,9 +110,9 @@ def init_mastery(student_id: int, req: InitMasteryRequest, request: Request):
                            http_status=404, data={"invalid_kp_ids": invalid})
 
     # 3. 组装向量（长度 N_KP，未提及的知识点填 0 / None）
-    correct_arr = np.zeros(ms.N_KP, dtype=np.float32)
-    wrong_arr = np.zeros(ms.N_KP, dtype=np.float32)
-    last_ts_arr: list = [None] * ms.N_KP
+    correct_arr = np.zeros(N_KP, dtype=np.float32)
+    wrong_arr = np.zeros(N_KP, dtype=np.float32)
+    last_ts_arr: list = [None] * N_KP
 
     if req.correct_counts:
         for kp_id, count in req.correct_counts.items():
@@ -127,7 +128,7 @@ def init_mastery(student_id: int, req: InitMasteryRequest, request: Request):
             last_ts_arr[reg.kp_id_to_idx(kp_id)] = ts
 
     # 4. 写入
-    ms.init_student(student_id, correct_arr, wrong_arr, last_ts_arr)
+    init_student(student_id, correct_arr, wrong_arr, last_ts_arr)
 
     # 5. 回读并返回初始化后的掌握度状态
     if all_kp_ids:

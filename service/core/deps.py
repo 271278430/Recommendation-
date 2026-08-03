@@ -9,9 +9,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from starlette.requests import Request
 
-import mastery_store as ms
-
-from .kp_registry import KPRegistry, build_registry
+from .kp_registry import KPRegistry, build_registry, N_KP
 from .logging import setup_logging
 
 log = logging.getLogger("recommend.startup")
@@ -21,7 +19,7 @@ log = logging.getLogger("recommend.startup")
 async def lifespan(app: FastAPI):
     setup_logging()
     app.state.kp_registry = build_registry()
-    log.info(f"startup ok: kp_registry={len(app.state.kp_registry.id2idx)} ids, N_KP={ms.N_KP}")
+    log.info(f"startup ok: kp_registry={len(app.state.kp_registry.id2idx)} ids, N_KP={N_KP}")
     yield
     log.info("shutdown")
 

@@ -8,7 +8,8 @@
 import os, sys
 import numpy as np
 sys.path.insert(0, os.path.dirname(__file__))
-import mastery_store as ms
+sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
+import service.core.constants as ms
 from scripts.eval_mechanism import replay, auc, brier
 
 

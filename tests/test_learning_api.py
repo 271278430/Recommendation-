@@ -7,27 +7,30 @@ from datetime import datetime, timedelta, timezone
 import pytest
 from fastapi.testclient import TestClient
 
-import mastery_store as ms
+from service.core.db import conn
+from service.svc.mastery import process_answer
+from service.core.kp_registry import NAME2IDX
+from service.core.repository import log_practice_event
 from service.main import app
 
 TEMP_SID = 99000003
 KP_NAME = "勾股定理"
 KP_ID = "J030004000200080003"
-KP_IDX = ms.NAME2IDX[KP_NAME]
+KP_IDX = NAME2IDX[KP_NAME]
 
 
 @pytest.fixture(scope="module")
 def student_with_data(require_pg):
     """临时学生：7 天前答对一题（写掌握度 + 写做题记录）。测完清理两张表。"""
     past = datetime.now(timezone.utc).replace(tzinfo=None) - timedelta(days=7)
-    ms.process_answer(TEMP_SID, [KP_IDX], [1.0], y=1.0, d=0.5, g=0.0, t=past)
-    ms.log_practice_event(TEMP_SID, "test_q_1", [KP_ID], 1.0, False,
+    process_answer(TEMP_SID, [KP_IDX], [1.0], y=1.0, d=0.5, g=0.0, t=past)
+    log_practice_event(TEMP_SID, "test_q_1", [KP_ID], 1.0, False,
                           ques_type="单选题", difficulty="较易", source="test", ts=past)
-    ms.log_practice_event(TEMP_SID, "test_q_2", [KP_ID], 0.0, True,
+    log_practice_event(TEMP_SID, "test_q_2", [KP_ID], 0.0, True,
                           ques_type="填空题", difficulty="适中", source="test",
                           ts=past - timedelta(days=1))
     yield TEMP_SID
-    with ms.conn() as c, c.cursor() as cur:
+    with conn() as c, c.cursor() as cur:
         cur.execute("DELETE FROM practice_event WHERE student_id=%s", (TEMP_SID,))
         cur.execute("DELETE FROM student_mastery WHERE student_id=%s", (TEMP_SID,))
         c.commit()

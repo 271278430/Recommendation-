@@ -11,8 +11,8 @@ import pytest
 
 def _pg_ok() -> bool:
     try:
-        import mastery_store as ms
-        with ms.conn() as c, c.cursor() as cur:
+        from service.core.db import conn
+        with conn() as c, c.cursor() as cur:
             cur.execute("SELECT 1")
         return True
     except Exception:

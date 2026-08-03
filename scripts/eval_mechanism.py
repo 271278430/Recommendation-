@@ -22,7 +22,10 @@ import numpy as np
 from datetime import datetime
 
 sys.path.insert(0, os.path.dirname(__file__))
-from mastery_store import step_update, P, N_KP, sigmoid
+sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
+from service.core.mastery_algo import step_update, sigmoid
+from service.core.constants import P
+from service.core.kp_registry import N_KP
 
 print('加载考试数据...')
 from scripts import web_app as W

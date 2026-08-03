@@ -18,7 +18,8 @@ import psycopg2.extras
 from datetime import datetime
 
 sys.path.insert(0, os.path.dirname(__file__))
-from mastery_store import conn
+sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
+from service.core.db import conn
 
 ROOT = '/data/shanghui/Recommend_question'
 EXAM = f'{ROOT}/data/九年级数学考试实际数据/20251016-0453-58eb-b45c-67523a043649'

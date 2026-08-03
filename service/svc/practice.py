@@ -3,17 +3,18 @@
 - kp_sequence: 查做题序列（只读）
 - submit_answer: 答题后更新掌握度 + 写做题记录 + 返回 before/after 变化
 """
-import mastery_store as ms
-
+from ..core.kp_registry import KP_NAMES
+from ..core.repository import get_kp_sequence, find_event_by_request_id, log_practice_event
 from ..core.response import BizError, ErrorCode
 from .forget import get_decayed, now_utc_naive
 from .learning import level_of
+from .mastery import process_answer
 from .question_bank import get_question_meta, get_question_weights, DIFF_MAP, _G_MAP
 
 
 def kp_sequence(student_id: int, kp_id: str, limit: int = 50, wrong_only: bool = False) -> list:
     """某学生在某知识点上的做题序列（按时间倒序）。"""
-    events = ms.get_kp_sequence(student_id, kp_id, limit, wrong_only)
+    events = get_kp_sequence(student_id, kp_id, limit, wrong_only)
     return [{
         "question_id": e["question_id"],
         "ts": e["ts"].isoformat() if e["ts"] is not None else None,
@@ -38,7 +39,7 @@ def submit_answer(student_id: int, question_id: str, score: float, reg, source: 
 
     # ⓪ 幂等：相同 client_request_id 已处理过则直接返回，不重复更新/写记录
     if client_request_id:
-        existed = ms.find_event_by_request_id(student_id, client_request_id)
+        existed = find_event_by_request_id(student_id, client_request_id)
         if existed is not None:
             return {
                 "student_id": student_id,
@@ -73,7 +74,7 @@ def submit_answer(student_id: int, question_id: str, score: float, reg, source: 
     else:
         qp_w = get_question_weights(question_id)
         if qp_w:
-            kp_names = [ms.KP_NAMES[idx] for idx in idxs]
+            kp_names = [KP_NAMES[idx] for idx in idxs]
             w_raw = [qp_w.get(nm, 0) for nm in kp_names]
             s = sum(w_raw)
             weights = [w / s for w in w_raw] if s > 0 else [1.0 / len(idxs)] * len(idxs)
@@ -84,12 +85,12 @@ def submit_answer(student_id: int, question_id: str, score: float, reg, source: 
     before = get_decayed(student_id, idxs, now)
 
     # ④ process_answer（7步掌握度更新流水线）
-    ms.process_answer(student_id, idxs, weights, y=score, d=d, g=g, k=5, t=now)
+    process_answer(student_id, idxs, weights, y=score, d=d, g=g, k=5, t=now)
 
     # ⑤ 写做题记录
-    ms.log_practice_event(student_id, question_id, kp_ids, score, is_wrong,
-                          ques_type=ques_type, difficulty=difficulty, d=d,
-                          source=source, ts=now, client_request_id=client_request_id)
+    log_practice_event(student_id, question_id, kp_ids, score, is_wrong,
+                       ques_type=ques_type, difficulty=difficulty, d=d,
+                       source=source, ts=now, client_request_id=client_request_id)
 
     # ⑥ m_after（last_ts 已更新到 now，Δt=0 不衰减，= 存储值）
     after = get_decayed(student_id, idxs, now)
@@ -103,7 +104,7 @@ def submit_answer(student_id: int, question_id: str, score: float, reg, source: 
         hd_a = after[i]["has_data"]
         updated.append({
             "kp_id": reg.idx_to_kp_id(idx),
-            "kp_name": ms.KP_NAMES[idx],
+            "kp_name": KP_NAMES[idx],
             "m_before": m_b,
             "m_after": m_a,
             "delta": round(m_a - m_b, 4),

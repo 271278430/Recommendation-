@@ -9,7 +9,8 @@
   python -m pytest tests/         # 跑测试
 
 从仓库根以 `python -m service.main` 启动，仓库根自动在 sys.path，
-`import mastery_store`（包）和 `import service.*` 均可用，无需 sys.path hack。
+`import service.*`（三层 api/svc/core）均可用，无需 sys.path hack。
+DB 配置在 deploy/.env（由 service.core.db 读取）；建表脚本 deploy/init/。
 """
 from fastapi import FastAPI
 

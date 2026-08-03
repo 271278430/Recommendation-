@@ -9,7 +9,8 @@ from datetime import datetime, timedelta
 import numpy as np
 import pytest
 
-from mastery_store import forget_decay, TAU_PEAK
+from service.core.mastery_algo import forget_decay
+from service.core.constants import TAU_PEAK
 from service.svc.forget import decayed_for_kp, get_decayed
 
 NOW = datetime(2026, 7, 15)

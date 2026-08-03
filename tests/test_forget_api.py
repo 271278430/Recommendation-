@@ -7,7 +7,8 @@ from datetime import datetime, timedelta, timezone
 import pytest
 from fastapi.testclient import TestClient
 
-import mastery_store as ms
+from service.core.db import conn
+from service.svc.mastery import process_answer
 from service.main import app
 
 TEMP_SID = 99000001                      # 临时学生（测完即删）
@@ -19,9 +20,9 @@ KP_ID = "J0300010001000100010006"
 def student_with_history(require_pg):
     """造一个临时学生：7 天前在 KP0 上答对一题，产生练习历史。测完删除。"""
     past = datetime.now(timezone.utc).replace(tzinfo=None) - timedelta(days=7)
-    ms.process_answer(TEMP_SID, [KP_IDX], [1.0], y=1.0, d=0.5, g=0.0, t=past)
+    process_answer(TEMP_SID, [KP_IDX], [1.0], y=1.0, d=0.5, g=0.0, t=past)
     yield TEMP_SID
-    with ms.conn() as c, c.cursor() as cur:
+    with conn() as c, c.cursor() as cur:
         cur.execute("DELETE FROM student_mastery WHERE student_id=%s", (TEMP_SID,))
 
 

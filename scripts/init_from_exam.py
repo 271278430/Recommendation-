@@ -24,7 +24,10 @@ import psycopg2.extras
 from datetime import datetime
 
 sys.path.insert(0, os.path.dirname(__file__))
-from mastery_store import NAME2IDX, N_KP, P, conn
+sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
+from service.core.kp_registry import NAME2IDX, N_KP
+from service.core.constants import P
+from service.core.db import conn
 
 EXAM = '/data/shanghui/Recommend_question/data/九年级数学考试实际数据/20251016-0453-58eb-b45c-67523a043649'
 

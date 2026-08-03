@@ -1,21 +1,21 @@
 # 粗召回接口测试（POST /students/{id}/recommendations）。自包含：用真实题库知识点。
 from fastapi.testclient import TestClient
 from service.main import app
-import mastery_store as ms
+from service.core.db import conn
 import pytest
 
 
 @pytest.fixture(scope="module")
 def kp_ids(require_pg):
     """取两个有真实题目标签的知识点。"""
-    with ms.conn() as cc, cc.cursor() as cur:
+    with conn() as cc, cc.cursor() as cur:
         cur.execute("SELECT DISTINCT kp FROM practice_event, unnest(kp_ids) kp LIMIT 2")
         return [r[0] for r in cur.fetchall()]
 
 
 @pytest.fixture(scope="module")
 def student_id(require_pg):
-    with ms.conn() as cc, cc.cursor() as cur:
+    with conn() as cc, cc.cursor() as cur:
         cur.execute("SELECT student_id FROM practice_event LIMIT 1")
         return cur.fetchone()[0]
 

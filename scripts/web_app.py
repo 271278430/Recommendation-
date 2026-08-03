@@ -16,15 +16,14 @@ from collections import defaultdict, Counter
 from flask import Flask, jsonify, request
 
 sys.path.insert(0, os.path.dirname(__file__))
-from mastery_store.mastery_store import (
-    NAME2IDX, N_KP, KP_NAMES,
-    get_mastery, get_converged_mastery, get_confidence,
-    get_state, process_answer, init_student, conn,
-    step_update, forget_decay,
-    P, K, TAU_MIN, TAU_MAX, TAU_PEAK, KAPPA, MU, RHO, N_MAX, K_SAT,
-    clamp, sigmoid,
-    FIRM_MIN, FIRM_RANGE, FIRM_SAT, SAVINGS_CAP, M_OBS_MIN, M_OBS_MAX,
-)
+sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
+from service.core.kp_registry import NAME2IDX, N_KP, KP_NAMES
+from service.core.mastery_algo import step_update, forget_decay, clamp, sigmoid
+from service.core.constants import (P, K, TAU_MIN, TAU_MAX, TAU_PEAK, KAPPA, MU, RHO,
+    N_MAX, K_SAT, FIRM_MIN, FIRM_RANGE, FIRM_SAT, SAVINGS_CAP, M_OBS_MIN, M_OBS_MAX)
+from service.core.db import conn
+from service.core.repository import get_state
+from service.svc.mastery import get_mastery, get_converged_mastery, get_confidence, process_answer, init_student
 
 app = Flask(__name__)
 ROOT = os.environ.get('PROJECT_ROOT', '/data/shanghui/Recommend_question')
@@ -375,7 +374,7 @@ def reset():
         m_peak[:] = 0.5
         last_ts[:] = None
 
-    from mastery_store import update as ms_update
+    from service.core.repository import update as ms_update
     def _write(_, __, ___, ____):
         return alpha, beta, m_peak, last_ts
     ms_update(sid, _write, source='reset', log_events=False)
@@ -401,7 +400,7 @@ def apply_forget():
     last_ts[kp_idx] = new_ts
 
     # 直接写 DB（绕过 update 的事务抽象，确保遗忘模拟一定持久化）
-    from mastery_store import conn as db_conn
+    from service.core.db import conn as db_conn
     with db_conn() as c, c.cursor() as cur:
         cur.execute(
             'INSERT INTO student_mastery(student_id, alpha, beta, m_peak, last_ts) '

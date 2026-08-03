@@ -7,7 +7,8 @@ import json
 import pytest
 from fastapi.testclient import TestClient
 
-import mastery_store as ms
+from service.core.db import conn
+from service.core.repository import get_student_events
 from service.main import app
 
 TEMP_SID = 99000004
@@ -33,7 +34,7 @@ def client():
 @pytest.fixture(autouse=True)
 def cleanup():
     yield
-    with ms.conn() as c, c.cursor() as cur:
+    with conn() as c, c.cursor() as cur:
         cur.execute("DELETE FROM practice_event WHERE student_id=%s", (TEMP_SID,))
         cur.execute("DELETE FROM student_mastery WHERE student_id=%s", (TEMP_SID,))
         c.commit()
@@ -84,7 +85,7 @@ def test_practice_event_written(client, real_question):
     client.post(f"/api/v1/students/{TEMP_SID}/practice-events", json={
         "question_id": real_question, "score": 1.0, "source": "homework",
     })
-    events = ms.get_student_events(TEMP_SID, days=1, limit=5)
+    events = get_student_events(TEMP_SID, days=1, limit=5)
     assert len(events) >= 1
     assert events[0]["question_id"] == real_question
     assert events[0]["score"] == 1.0
@@ -97,7 +98,7 @@ def test_explicit_is_wrong_for_partial_score(client, real_question):
         "is_wrong": True, "source": "homework",
     })
     assert r.status_code == 201
-    with ms.conn() as c, c.cursor() as cur:
+    with conn() as c, c.cursor() as cur:
         cur.execute(
             "SELECT is_wrong FROM practice_event WHERE student_id=%s AND question_id=%s "
             "ORDER BY ts DESC LIMIT 1",
@@ -128,7 +129,7 @@ def test_client_request_id_is_idempotent(client, real_question):
     assert "updated_kps" not in d2               # 没有重复走更新流程
 
     # 该 client_request_id 只写了一行（第二次没追加）
-    with ms.conn() as c, c.cursor() as cur:
+    with conn() as c, c.cursor() as cur:
         cur.execute(
             "SELECT count(*) FROM practice_event WHERE student_id=%s AND client_request_id=%s",
             (TEMP_SID, rid),

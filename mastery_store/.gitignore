@@ -1,5 +1,0 @@
-.env
-backups/
-*.dump
-*.dump.gz
-__pycache__/

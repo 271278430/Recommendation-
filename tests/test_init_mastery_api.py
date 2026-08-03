@@ -7,7 +7,7 @@ from datetime import datetime, timedelta, timezone
 import pytest
 from fastapi.testclient import TestClient
 
-import mastery_store as ms
+from service.core.db import conn
 from service.main import app
 
 TEMP_SID = 99000002                      # 临时学生（测完即删）
@@ -16,7 +16,7 @@ KP_ID_B = "J0300010001000100010007"      # kp_idx=1（如果存在的话）
 
 
 def _cleanup(sid=TEMP_SID):
-    with ms.conn() as c, c.cursor() as cur:
+    with conn() as c, c.cursor() as cur:
         cur.execute("DELETE FROM student_mastery WHERE student_id=%s", (sid,))
         cur.execute("DELETE FROM mastery_event WHERE student_id=%s", (sid,))
 

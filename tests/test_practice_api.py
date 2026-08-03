@@ -7,7 +7,8 @@ from datetime import datetime, timedelta, timezone
 import pytest
 from fastapi.testclient import TestClient
 
-import mastery_store as ms
+from service.core.db import conn
+from service.core.repository import log_practice_event
 from service.main import app
 
 TEMP_SID = 99000002
@@ -18,14 +19,14 @@ KP_ID = "J030003000400010006"   # 二次函数的定义（题库真实 kp_id）
 def student_with_event(require_pg):
     """给临时学生造两条做题事件（一对一错），测完删除。"""
     now = datetime.now(timezone.utc)
-    ms.log_practice_event(TEMP_SID, "test_q_right", [KP_ID], 1.0, False,
+    log_practice_event(TEMP_SID, "test_q_right", [KP_ID], 1.0, False,
                           ques_type="单选题", difficulty="较易", source="test",
                           ts=now - timedelta(days=2))
-    ms.log_practice_event(TEMP_SID, "test_q_wrong", [KP_ID], 0.0, True,
+    log_practice_event(TEMP_SID, "test_q_wrong", [KP_ID], 0.0, True,
                           ques_type="填空题", difficulty="适中", source="test",
                           ts=now - timedelta(days=1))
     yield TEMP_SID
-    with ms.conn() as c, c.cursor() as cur:
+    with conn() as c, c.cursor() as cur:
         cur.execute("DELETE FROM practice_event WHERE student_id=%s", (TEMP_SID,))
 
 

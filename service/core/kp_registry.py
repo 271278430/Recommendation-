@@ -1,11 +1,11 @@
 """统一知识点标识注册表：kp_id ↔ kp_idx ↔ kp_name 的唯一权威映射。
 
 【规范】API 边界一律用 kp_id（题库唯一 id）。本注册表负责把 kp_id 翻译成内部用的
-kp_idx（mastery_store 索引）和 kp_name（人读）。所有接口都通过这里做映射，不各写一份。
+kp_idx（0 基）和 kp_name（人读）。所有接口都通过这里做映射，不各写一份。
 
 数据来源：
+  kp_name → kp_idx：本模块加载的 kg_index.json（612 标准名，NAME2IDX）
   kp_id  → kp_name：题库 kgPoints 的 {id, name}（缓存到 data/kg_graph/kp_id_map.json）
-  kp_name → kp_idx：mastery_store.NAME2IDX（来自 kg_index.json 的 612 标准名）
 
 重名处理：题库有 24 组"同名不同 id"，本注册表里每个 kp_idx 取第一个遇到的 kp_id
 作为规范 id（kp_id 自身永远唯一，不会错连）。
@@ -15,11 +15,16 @@ import logging
 import os
 from dataclasses import dataclass
 
-import mastery_store as ms
-
 from .config import settings
 
 log = logging.getLogger("recommend.kp_registry")
+
+# ---------------------------------------------------------------------------
+# 知识点标准名索引（原 mastery_store.KP_NAMES / NAME2IDX / N_KP 的唯一加载点）
+# ---------------------------------------------------------------------------
+KP_NAMES = json.load(open(f"{settings.project_root}/data/kg_graph/kg_index.json", encoding="utf-8"))
+NAME2IDX = {n: i for i, n in enumerate(KP_NAMES)}
+N_KP = len(KP_NAMES)  # 612
 
 
 @dataclass
@@ -60,7 +65,6 @@ def _load_id2name() -> dict:
     if os.path.exists(path):
         with open(path, encoding="utf-8") as f:
             return json.load(f)
-    # 收集: kp_id -> [name1, name2, ...]
     id_to_names: dict = {}
     with open(settings.qbank_path, encoding="utf-8") as f:
         for line in f:
@@ -68,13 +72,10 @@ def _load_id2name() -> dict:
                 kid, nm = kp.get("id"), kp.get("name")
                 if kid and nm:
                     id_to_names.setdefault(kid, []).append(nm)
-    # 选最佳名字: 优先匹配 NAME2IDX
-    import mastery_store as ms
-    name2idx = ms.NAME2IDX
     m: dict = {}
     for kid, names in id_to_names.items():
         for nm in names:
-            if nm in name2idx:
+            if nm in NAME2IDX:
                 m[kid] = nm
                 break
         else:
@@ -88,9 +89,7 @@ def _load_id2name() -> dict:
 def build_registry() -> KPRegistry:
     """启动时构建唯一权威映射。"""
     id2name = _load_id2name()
-    name2idx = ms.NAME2IDX
-    id2idx = {kid: name2idx[nm] for kid, nm in id2name.items() if nm in name2idx}
-    # idx -> 规范 kp_id（同 idx 多 id 时取第一个）
+    id2idx = {kid: NAME2IDX[nm] for kid, nm in id2name.items() if nm in NAME2IDX}
     idx2id = {}
     for kid, idx in id2idx.items():
         idx2id.setdefault(idx, kid)

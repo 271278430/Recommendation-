@@ -9,7 +9,10 @@
 import os, sys
 import numpy as np
 sys.path.insert(0, os.path.dirname(__file__))
-from mastery_store import step_update, P, N_KP
+sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
+from service.core.mastery_algo import step_update
+from service.core.constants import P
+from service.core.kp_registry import N_KP
 from datetime import datetime
 
 T0 = datetime(2025, 10, 16, 9, 0, 0)

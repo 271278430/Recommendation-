@@ -1,13 +1,12 @@
 """学情查询业务层：组装学生学情 = 掌握度概览 + 做题历史 + 指标。
 
-复用：forget.get_decayed（掌握度衰减）、mastery_store.practice（做题统计/事件）。
+复用：forget.get_decayed（掌握度衰减）、repository（做题统计/事件）。
 KP 标识统一用 kp_id；scope（module/kp_ids）经 KPRegistry + nodes.json 解析。
 """
 import json
 import os
 
-import mastery_store as ms
-
+from ..core import repository
 from ..core.config import settings
 from ..core.response import BizError, ErrorCode
 from .forget import get_decayed, now_utc_naive
@@ -101,7 +100,7 @@ def _mastery_part(student_id, kps, now, detail, recent_days):
 
     decayed = get_decayed(student_id, [k["kp_idx"] for k in kps], now)
     kp_ids = [k["kp_id"] for k in kps if k["kp_id"]]
-    stats = ms.get_kp_stats(student_id, kp_ids, recent_days) if kp_ids else {}
+    stats = repository.get_kp_stats(student_id, kp_ids, recent_days) if kp_ids else {}
 
     items = []
     for k, d in zip(kps, decayed):
@@ -151,8 +150,8 @@ def _empty_summary(total_kp=0):
 
 
 def _history_part(student_id, scope_kp_ids, days, limit):
-    summary = ms.get_history_summary(student_id, scope_kp_ids, days)
-    raw = ms.get_student_events(student_id, days=days, kp_ids=scope_kp_ids, limit=limit) if scope_kp_ids else []
+    summary = repository.get_history_summary(student_id, scope_kp_ids, days)
+    raw = repository.get_student_events(student_id, days=days, kp_ids=scope_kp_ids, limit=limit) if scope_kp_ids else []
     events = [{
         "question_id": e["question_id"],
         "ts": e["ts"].isoformat() if e["ts"] is not None else None,

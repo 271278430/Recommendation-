@@ -8,7 +8,7 @@ from typing import Literal, Optional
 
 from fastapi import APIRouter, Query, Request
 
-import mastery_store as ms
+from ..core.repository import list_students as all_student_ids
 
 from ..core.deps import get_kp_registry
 from ..core.response import ApiResponse, BizError, ErrorCode
@@ -22,9 +22,7 @@ _VALID_ASPECTS = {"mastery", "history"}
 @router.get("", response_model=ApiResponse, summary="学生 ID 列表")
 def list_students(request: Request):
     tid = getattr(request.state, "trace_id", None)
-    with ms.conn() as c, c.cursor() as cur:
-        cur.execute("SELECT student_id FROM student_mastery ORDER BY student_id")
-        ids = [r[0] for r in cur.fetchall()]
+    ids = all_student_ids()
     return ApiResponse(data=ids, trace_id=tid)
 
 
